@@ -1,0 +1,52 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Windows CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+    # Submoudle
+    - name: Checkout Submodles
+      run: git submodule update --init --recursive
+    # Setup MSBuild For Later Usage
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.0.2
+      with:
+        vs-version: '16.6.2'
+    # Download Panda3D
+    - name: Download Panda3D
+      run: C:\msys64\usr\bin\wget.exe https://www.panda3d.org/download/panda3d-1.10.7/Panda3D-SDK-1.10.7-x64.exe
+    # Install Panda3D
+    - name: Install Panda3D
+      run: 7z.exe x Panda3D-SDK-1.10.7-x64.exe -oC:/Panda3D-1.10.7-x64 -y -x!$PLUGINSDIR -mmt=off
+    # Run CMake
+    - name: Run CMake
+      run: cmake -DPANDA_DIR=C:/Panda3D-1.10.7-x64 -A x64 -Bbuild -S.
+    # Run MSBuild
+    - name: Build Solution
+      run: msbuild "build/libdisney.sln" /property:Configuration=Release
+    # Post Build
+    - name: Post Build
+      run: move "build/cmake/otp/Release" "artifact" && move "build/cmake/toontown/Release" "artifact"
+    # Upload Artifact
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: libdisney-win32
+        path: D:\a\libtoontown\libtoontown\artifact
